@@ -68,4 +68,4 @@ class BlendUI_PT_Panel(Panel):
 
         row = layout.row()
         col = row.column()
-        col.operator("object.create_mesh", text="meshmaker")
+        col.operator("object.create_better_sphere", text="meshmaker")

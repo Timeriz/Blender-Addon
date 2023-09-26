@@ -16,6 +16,7 @@ from bpy.types import (Panel,
                        )
 
 
+
 class Blend_OT_Flat_Shade_Op(Operator):
     bl_idname = "object.apply_flat_shade"
     bl_label = "Apply flat shade"
@@ -298,6 +299,7 @@ class DialogOperatorColor(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
+
 class Blend_OT_Export_Obj_Op(Operator):
     bl_idname = "object.export_obj"
     bl_label = "export obj"
@@ -315,38 +317,68 @@ class Blend_OT_Export_Obj_Op(Operator):
         bpy.ops.object.dialog_operator_exporter('INVOKE_DEFAULT')
         return {'FINISHED'}
 
-
 class DialogOperatorExport(bpy.types.Operator):
     bl_idname = "object.dialog_operator_exporter"
     bl_label = "Object exporter"
 
     selectedObjects: bpy.props.BoolProperty(name="Export selected objects")
+    selectedAsIndividual: bpy.props.BoolProperty(name="Export selected as individual")
     activeCollection: bpy.props.BoolProperty(name="Export active collection")
 
     objSelection: bpy.props.BoolProperty(name="Wavefront (.obj)")
     fbxSelection: bpy.props.BoolProperty(name="FBX (.fbx)")
     x3dSelection: bpy.props.BoolProperty(name="X3D Extensible 3D (.x3d)")
 
-    path: bpy.props.StringProperty(
-        name="Path: ", subtype="DIR_PATH", default="c:\ ")
-    name: bpy.props.StringProperty(name="Filename: ")
+    writeMaterials: bpy.props.BoolProperty(name="Write materials separately")
 
+
+    path: bpy.props.StringProperty(
+        name="Path: ", subtype="DIR_PATH", default="c:\\blender_exports")
+    name: bpy.props.StringProperty(
+        name="Filename:", default="Export_")
+    
+    lastActive = None
     def execute(self, context):
-        if self.objSelection:
-            bpy.ops.export_scene.obj(
-                filepath=self.path + "\ " + self.name + ".obj", check_existing=True, use_selection=self.selectedObjects or self.activeCollection)
-        if(self.fbxSelection):
-            bpy.ops.export_scene.fbx(
-                filepath=self.path + "\ " + self.name + ".fbx", check_existing=True, use_selection=self.selectedObjects or self.activeCollection)
-        if(self.x3dSelection):
-            bpy.ops.export_scene.x3d(
-                filepath=self.path + "\ " + self.name + ".x3d", check_existing=True, use_selection=self.selectedObjects or self.activeCollection)
-        if(self.selectedObjects):
-            bpy.ops.export_scene.obj(
-                filepath=self.path + "\ " + self.name + ".obj", check_existing=True, use_selection=self.selectedObjects or self.activeCollection)
+        selectedObjectsCache = bpy.context.selected_objects
+        if(os.path.exists(self.path) == False):
+            os.mkdir(self.path)
+
+        if(self.selectedAsIndividual):
+            self.selectedObjects = True
+            for obj in selectedObjectsCache:
+                bpy.ops.object.select_all(action='DESELECT')
+                self.name = obj.name
+                obj.select_set(True)
+                self.exportSingle(context)
+                self.lastActive = obj
+        else:
+            self.exportSingle(context)
+
+        if(self.writeMaterials == False and self.name != None):
+            os.remove(self.path + "\\" + self.name + ".mtl")
+        #for file in os.listdir(self.path):
+        #    if(file.endswith(".mtl")):
+        #        print("removing:" + self.path + "\\" + file)
+        #        os.remove(self.path + "\\" + file)
 
         return {'FINISHED'}
-
+            
+    def exportSingle(self, context):
+        if self.objSelection:
+            bpy.ops.export_scene.obj(
+                filepath=self.path + "\\" + self.name + ".obj", use_selection=self.selectedObjects or self.activeCollection)
+        if self.fbxSelection:
+            bpy.ops.export_scene.fbx(
+                filepath=self.path + "\\" + self.name + ".fbx", check_existing=True, use_selection=self.selectedObjects or self.activeCollection)
+            if(self.writeMaterials == False and self.lastActive != None):
+                os.remove(self.path + "\\" + self.lastActive.name + ".mtl")
+        if self.x3dSelection:
+            bpy.ops.export_scene.x3d(
+                filepath=self.path + "\\" + self.name + ".x3d", check_existing=True, use_selection=self.selectedObjects or self.activeCollection)
+        if self.selectedObjects:
+            bpy.ops.export_scene.obj(
+                filepath=self.path + "\\" + self.name + ".obj", check_existing=True, use_selection=self.selectedObjects or self.activeCollection)
+        
     def invoke(self, context, event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
@@ -420,6 +452,7 @@ class Blend_OT_Camera_Op(Operator):
         bpy.context.object.data.show_passepartout = True
         bpy.context.object.data.passepartout_alpha = 0.5
         return {'FINISHED'}
+
 
 
 class Blend_OT_Mesh_Creator_Op(Operator):

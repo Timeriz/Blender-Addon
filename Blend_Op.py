@@ -1,5 +1,6 @@
 import os
 import random
+from math import radians, sin, cos
 import bpy
 from bpy.types import Modifier, Operator
 from bpy.props import (StringProperty,
@@ -273,7 +274,7 @@ class DialogOperatorColor(bpy.types.Operator):
     bl_idname = "object.dialog_operator_color"
     bl_label = "Dialog Operator Color"
 
-    col: bpy.props.FloatVectorProperty(name="Color: ", size=4)
+    col: bpy.props.FloatVectorProperty(name="Color: ", size=4, default=(0, 128, 0, 0))
 
     def execute(self, context):
         material_basic = bpy.data.materials.new(name="Basic")
@@ -291,6 +292,10 @@ class DialogOperatorColor(bpy.types.Operator):
         link = material_basic.node_tree.links.new
 
         link(rgb_node.outputs[0], principled_node.inputs[0])
+
+
+
+        bpy.context.space_data.shading.type = 'MATERIAL'
 
         return {'FINISHED'}
 
@@ -432,6 +437,7 @@ class Blend_OT_Camera_Op(Operator):
     bl_label = "Create camera for rendering with preset"
     bl_description = "Creates a camera with reasonable preset"
 
+
     @classmethod
     def poll(cls, context):
         obj = context.object
@@ -456,35 +462,86 @@ class Blend_OT_Camera_Op(Operator):
 
 
 class Blend_OT_Mesh_Creator_Op(Operator):
-    bl_idname = "object.create_mesh"
-    bl_label = "Create mesh"
-    bl_description = "Creates mesh"
+    bl_idname = "object.create_better_sphere"
+    bl_label = "Create sphere"
+    bl_description = "Creates a sphere with better topography"
+
+
+    segments: bpy.props.IntProperty(name="Segments: ", default=64)
+    radius: bpy.props.FloatProperty(name="Radius: ", default=4.0)
+    rings: bpy.props.IntProperty(name="Rings: ", default=64)
 
     @classmethod
     def poll(cls, context):
         return True
 
     def execute(self, context):
-        mesh = bpy.data.meshes.new("high tech gamer mesh")
+        mesh = bpy.data.meshes.new("BetterSphere")
         obj = bpy.data.objects.new(mesh.name, mesh)
         col = bpy.data.collections.get("Collection")
         col.objects.link(obj)
         bpy.context.view_layer.objects.active = obj
+        
+        obj.select_set(True)
 
-        verts = [(random.randint(-50, 50), random.randint(-50, 50),
-                  random.randint(-50, 50)),
-
-                 (random.randint(-50, 50), random.randint(-50, 50),
-                  random.randint(-50, 50)),
-
-                 (random.randint(-50, 50), random.randint(-50, 50),
-                  random.randint(-50, 50)),
-
-                 (random.randint(-50, 50),  random.randint(-50, 50),
-                  random.randint(-50, 50)),
-                 ]
+        
+        vertices = []
         edges = []
-        faces = [[0, 1, 2, 3]]
+        faces = []
 
-        mesh.from_pydata(verts, edges, faces)
+        segments = self.segments
+        rings = self.rings
+        radius = self.radius
+
+#verts = [(random.randint(-50, 50), random.randint(-50, 50),
+#          random.randint(-50, 50)),
+#
+#                 (random.randint(-50, 50), random.randint(-50, 50),
+#                  random.randint(-50, 50)),
+#
+#                 (random.randint(-50, 50), random.randint(-50, 50),
+#                  random.randint(-50, 50)),
+#
+#                 (random.randint(-50, 50),  random.randint(-50, 50),
+#                  random.randint(-50, 50)),
+#                 ]
+#        edges = []
+#        faces = [[0, 1, 2, 3]]
+
+
+        for ring in range(rings + 1):
+            
+            phi = ring * radians(180) / rings
+
+            for segment in range(segments + 1):
+                angle = segment * radians(360) / segments
+                x = radius * cos(angle) * sin(phi)
+                y = radius * sin(angle) * sin(phi)
+                z = radius * cos(phi)
+                vertices.append((x, y, z))
+
+            if ring > 0:
+                seg = segments + 1
+                for segment in range(segments):
+                    faces.append([
+
+                        (ring - 1) * seg + segment,
+                        (ring - 1) * seg + segment + 1,
+                        ring * seg + segment + 1,
+                        ring * seg + segment
+                    
+                    ])
+
+        mesh.from_pydata(vertices, edges, faces)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.uv.unwrap()
+        bpy.ops.object.mode_set(mode='OBJECT')
+        
+        mesh.update()
+
         return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)

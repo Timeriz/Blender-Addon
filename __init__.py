@@ -15,7 +15,7 @@ from . BlendUI import BlendUI_PT_Panel
 from . Blend_Op import Blend_OT_Apply_All_Op, Blend_OT_Cancel_All_Op, Blend_OT_Add_Bevel_Op, Blend_OT_Add_Decimate_Op, Blend_OT_Add_Remesh_Op, Blend_OT_Add_Mirror_Op, DialogOperatorBevel, DialogOperatorDecimate, DialogOperatorRemesh, DialogOperatorMirror, Blend_OT_Add_Color_Op, DialogOperatorColor, Blend_OT_Export_Obj_Op, DialogOperatorExport, Blend_OT_Smooth_Shade_Op, Blend_OT_Flat_Shade_Op, Blend_OT_Render_Engine_Cycles_Op, Blend_OT_Render_Engine_Eevee_Op, Blend_OT_Camera_Op, Blend_OT_Mesh_Creator_Op
 import bpy
 bl_info = {
-    "name": "BlendAdd",
+    "name": "Timeriz Custom Addon",
     "author": "Timeriz",
     "description": "",
     "blender": (2, 80, 0),
